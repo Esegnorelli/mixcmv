@@ -6,17 +6,18 @@ import {
   Settings, 
   TrendingUp, 
   Calculator,
-  DollarSign,
-  Package
+  Package,
+  AlertCircle
 } from 'lucide-react';
 
-// Definitions
+// Definição dos tipos de Mix
 enum MixType {
   MOIDA = 'Mix Moída',
   PICADA = 'Mix Picado',
   FRANGO = 'Mix Frango'
 }
 
+// Proporções exatas conforme solicitado
 const MIX_PROPORTIONS = {
   [MixType.MOIDA]: { 'Sal': 0.165, 'Caldo de Carne': 0.835 },
   [MixType.PICADA]: { 'Sal': 0.334, 'Caldo de Carne': 0.334, 'Tempero Seco': 0.334 },
@@ -24,41 +25,43 @@ const MIX_PROPORTIONS = {
 };
 
 const App: React.FC = () => {
-  // 1. Ingredients Prices (R$ per kg)
+  // 1. Preços dos Insumos (R$ por kg) - Podem ser inicializados via ENV
+  // Fix: Replaced import.meta.env with process.env to resolve TypeScript 'ImportMeta' errors
   const [prices, setPrices] = useState({
-    sal: 2.50,
-    caldoCarne: 35.00,
-    caldoFrango: 32.00,
-    temperoSeco: 45.00
+    sal: Number(process.env.VITE_PRECO_SAL) || 2.50,
+    caldoCarne: Number(process.env.VITE_PRECO_CALDO_CARNE) || 35.00,
+    caldoFrango: Number(process.env.VITE_PRECO_CALDO_FRANGO) || 32.00,
+    temperoSeco: Number(process.env.VITE_PRECO_TEMPERO_SECO) || 45.00
   });
 
-  // 2. Logistics Config
+  // 2. Configuração de Logística - Valores fornecidos como padrão ou via ENV
+  // Fix: Replaced import.meta.env with process.env to resolve TypeScript 'ImportMeta' errors
   const [logistics, setLogistics] = useState({
-    servico: 39.40,
-    maoPropria: 8.75,
-    embalagem: 8.90,
-    capacidade: 6
+    servico: Number(process.env.VITE_LOGISTICA_SERVICO) || 39.40,
+    maoPropria: Number(process.env.VITE_LOGISTICA_MAO_PROPRIA) || 8.75,
+    embalagem: Number(process.env.VITE_LOGISTICA_EMBALAGEM) || 8.90,
+    capacidade: Number(process.env.VITE_LOGISTICA_CAPACIDADE) || 6
   });
 
-  // 3. Current Calculation
+  // 3. Estado da Calculadora Atual
   const [selectedMix, setSelectedMix] = useState<MixType>(MixType.MOIDA);
   const [quantityKg, setQuantityKg] = useState<number>(1);
   const [sellingPrice, setSellingPrice] = useState<number>(100.00);
 
-  // Math Logic
+  // Lógica Matemática de Custo, CMV e Markup
   const results = useMemo(() => {
     const proportions = MIX_PROPORTIONS[selectedMix];
     
-    // Ingredient Cost per KG of Mix
+    // Custo de Insumos por KG do Mix selecionado
     let costPerKg = 0;
     if (proportions['Sal']) costPerKg += proportions['Sal'] * prices.sal;
-    if (proportions['Caldo de Carne']) costPerKg += proportions['Caldo de Carne'] * prices.caldoCarne;
-    if (proportions['Caldo de Frango']) costPerKg += proportions['Caldo de Frango'] * prices.caldoFrango;
-    if (proportions['Tempero Seco']) costPerKg += proportions['Tempero Seco'] * prices.temperoSeco;
+    if ('Caldo de Carne' in proportions) costPerKg += (proportions as any)['Caldo de Carne'] * prices.caldoCarne;
+    if ('Caldo de Frango' in proportions) costPerKg += (proportions as any)['Caldo de Frango'] * prices.caldoFrango;
+    if ('Tempero Seco' in proportions) costPerKg += (proportions as any)['Tempero Seco'] * prices.temperoSeco;
 
     const totalIngredientCost = costPerKg * quantityKg;
 
-    // Logistic Cost per Unit
+    // Custo Logístico por Unidade (Total da caixa / capacidade)
     const totalLogisticPerBox = logistics.servico + logistics.maoPropria + logistics.embalagem;
     const logisticUnitCost = totalLogisticPerBox / logistics.capacidade;
 
@@ -76,42 +79,43 @@ const App: React.FC = () => {
   }, [selectedMix, quantityKg, sellingPrice, prices, logistics]);
 
   return (
-    <div className="min-h-screen bg-gray-50 text-slate-900 pb-12">
-      {/* Header */}
+    <div className="min-h-screen bg-slate-50 text-slate-900 pb-12 font-sans">
+      {/* Header Estilizado */}
       <header className="bg-yellow-500 shadow-md p-6 sticky top-0 z-50">
-        <div className="max-w-4xl mx-auto flex items-center justify-between">
+        <div className="max-w-5xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
             <FlaskConical className="text-red-600" size={32} />
             <h1 className="text-2xl font-black text-white uppercase tracking-tighter">Hora do Pastel <span className="text-red-700">| Mix Lab</span></h1>
           </div>
-          <div className="hidden md:block text-xs font-bold text-yellow-100 uppercase tracking-widest">Calculadora de CMV & Markup</div>
+          <div className="hidden md:flex items-center gap-2 text-xs font-bold text-yellow-100 uppercase tracking-widest bg-yellow-600 px-3 py-1 rounded-full">
+            <Settings size={14} /> Env Ready
+          </div>
         </div>
       </header>
 
-      <main className="max-w-4xl mx-auto px-4 py-8 space-y-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+      <main className="max-w-5xl mx-auto px-4 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           
-          {/* Column 1: Configs */}
-          <div className="space-y-8">
-            {/* Prices Section */}
+          {/* Seção de Configurações (Esquerda) */}
+          <div className="lg:col-span-1 space-y-6">
             <section className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6">
-              <h2 className="text-lg font-bold mb-4 flex items-center gap-2 text-slate-700">
-                <Settings className="text-yellow-500" size={20} /> Preços dos Insumos (R$/kg)
+              <h2 className="text-sm font-bold mb-4 flex items-center gap-2 text-slate-500 uppercase tracking-wider">
+                <Settings className="text-yellow-500" size={18} /> Insumos (R$/kg)
               </h2>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-4">
                 {[
                   { label: 'Sal', key: 'sal' },
                   { label: 'Caldo Carne', key: 'caldoCarne' },
                   { label: 'Caldo Frango', key: 'caldoFrango' },
                   { label: 'Tempero Seco', key: 'temperoSeco' }
                 ].map(item => (
-                  <div key={item.key} className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase">{item.label}</label>
-                    <div className="flex items-center bg-slate-50 border border-slate-200 rounded-xl px-3 py-2">
-                      <span className="text-slate-400 text-sm">R$</span>
+                  <div key={item.key} className="flex items-center justify-between gap-4">
+                    <label className="text-xs font-semibold text-slate-600">{item.label}</label>
+                    <div className="flex items-center bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 focus-within:ring-2 focus-within:ring-yellow-400">
+                      <span className="text-slate-400 text-xs mr-1">R$</span>
                       <input 
                         type="number" 
-                        className="w-full bg-transparent text-right font-bold outline-none"
+                        className="w-20 bg-transparent text-right font-bold outline-none text-sm"
                         value={prices[item.key as keyof typeof prices]}
                         onChange={e => setPrices({...prices, [item.key]: parseFloat(e.target.value) || 0})}
                       />
@@ -121,72 +125,58 @@ const App: React.FC = () => {
               </div>
             </section>
 
-            {/* Logistics Section */}
             <section className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6">
-              <h2 className="text-lg font-bold mb-4 flex items-center gap-2 text-slate-700">
-                <Truck className="text-blue-500" size={20} /> Logística (Editável)
+              <h2 className="text-sm font-bold mb-4 flex items-center gap-2 text-slate-500 uppercase tracking-wider">
+                <Truck className="text-blue-500" size={18} /> Logística (Editável)
               </h2>
-              <div className="grid grid-cols-1 gap-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase">Serviço/Correio</label>
-                    <input 
-                      type="number" 
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 font-bold outline-none"
-                      value={logistics.servico}
-                      onChange={e => setLogistics({...logistics, servico: parseFloat(e.target.value) || 0})}
-                    />
+              <div className="space-y-4">
+                {[
+                  { label: 'Serviço/Correio', key: 'servico' },
+                  { label: 'Mão Própria', key: 'maoPropria' },
+                  { label: 'Embalagem', key: 'embalagem' }
+                ].map(item => (
+                  <div key={item.key} className="flex items-center justify-between gap-4">
+                    <label className="text-xs font-semibold text-slate-600">{item.label}</label>
+                    <div className="flex items-center bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 focus-within:ring-2 focus-within:ring-blue-400">
+                      <span className="text-slate-400 text-xs mr-1">R$</span>
+                      <input 
+                        type="number" 
+                        className="w-20 bg-transparent text-right font-bold outline-none text-sm"
+                        value={logistics[item.key as keyof typeof logistics]}
+                        onChange={e => setLogistics({...logistics, [item.key]: parseFloat(e.target.value) || 0})}
+                      />
+                    </div>
                   </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase">Mão Própria</label>
-                    <input 
-                      type="number" 
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 font-bold outline-none"
-                      value={logistics.maoPropria}
-                      onChange={e => setLogistics({...logistics, maoPropria: parseFloat(e.target.value) || 0})}
-                    />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase">Embalagem</label>
-                    <input 
-                      type="number" 
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 font-bold outline-none"
-                      value={logistics.embalagem}
-                      onChange={e => setLogistics({...logistics, embalagem: parseFloat(e.target.value) || 0})}
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase">Capacidade p/ Caixa</label>
-                    <input 
-                      type="number" 
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 font-bold outline-none text-blue-600"
-                      value={logistics.capacidade}
-                      onChange={e => setLogistics({...logistics, capacidade: parseInt(e.target.value) || 1})}
-                    />
-                  </div>
+                ))}
+                <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-4">
+                  <label className="text-xs font-bold text-blue-600 uppercase">Capac. p/ Caixa</label>
+                  <input 
+                    type="number" 
+                    className="w-20 bg-blue-50 border border-blue-200 rounded-xl px-3 py-1.5 font-bold outline-none text-sm text-center"
+                    value={logistics.capacidade}
+                    onChange={e => setLogistics({...logistics, capacidade: parseInt(e.target.value) || 1})}
+                  />
                 </div>
               </div>
             </section>
           </div>
 
-          {/* Column 2: Calculator & Result */}
-          <div className="space-y-8">
-            {/* Calculation Inputs */}
-            <section className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6">
+          {/* Seção de Calculadora (Direita) */}
+          <div className="lg:col-span-2 space-y-6">
+            <section className="bg-white rounded-3xl shadow-sm border border-slate-200 p-8">
               <h2 className="text-lg font-bold mb-6 flex items-center gap-2 text-slate-700">
-                <Calculator className="text-red-500" size={20} /> Calculadora de Lote
+                <Calculator className="text-red-500" size={22} /> Calculadora de Lote de Produção
               </h2>
-              <div className="space-y-6">
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase">Selecione o Mix</label>
-                  <div className="grid grid-cols-1 gap-2">
+              
+              <div className="space-y-8">
+                <div className="space-y-3">
+                  <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Tipo de Mix</label>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                     {Object.values(MixType).map(type => (
                       <button
                         key={type}
                         onClick={() => setSelectedMix(type)}
-                        className={`py-3 px-4 rounded-xl text-left font-bold transition-all ${selectedMix === type ? 'bg-yellow-500 text-white shadow-lg scale-105' : 'bg-slate-50 text-slate-500 hover:bg-slate-100'}`}
+                        className={`py-4 px-4 rounded-2xl text-center font-bold transition-all border-2 ${selectedMix === type ? 'bg-yellow-500 text-white border-yellow-500 shadow-lg scale-105' : 'bg-white text-slate-400 border-slate-100 hover:border-yellow-200'}`}
                       >
                         {type}
                       </button>
@@ -194,21 +184,21 @@ const App: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase">Qtde Produzida (KG)</label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Quantidade Produzida (KG)</label>
                     <input 
                       type="number" 
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 font-bold outline-none text-lg"
+                      className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 font-black outline-none text-2xl focus:border-yellow-400 transition-colors"
                       value={quantityKg}
                       onChange={e => setQuantityKg(parseFloat(e.target.value) || 0)}
                     />
                   </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase">Preço de Venda (R$)</label>
+                  <div className="space-y-2">
+                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Preço de Venda do Lote (R$)</label>
                     <input 
                       type="number" 
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 font-bold outline-none text-lg text-green-600"
+                      className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 font-black outline-none text-2xl text-green-600 focus:border-green-400 transition-colors"
                       value={sellingPrice}
                       onChange={e => setSellingPrice(parseFloat(e.target.value) || 0)}
                     />
@@ -217,58 +207,78 @@ const App: React.FC = () => {
               </div>
             </section>
 
-            {/* Results Display */}
-            <section className="bg-slate-900 rounded-3xl shadow-xl p-8 text-white space-y-6 relative overflow-hidden">
-              <div className="absolute top-0 right-0 p-4 opacity-10">
-                <TrendingUp size={120} />
-              </div>
-              
-              <div className="flex items-center gap-3 border-b border-slate-800 pb-4">
-                <TrendingUp className="text-green-400" size={24} />
-                <h2 className="text-xl font-black uppercase tracking-widest">Resultado do Mix</h2>
+            {/* Painel de Resultados */}
+            <section className="bg-slate-900 rounded-[2rem] shadow-2xl p-8 text-white relative overflow-hidden">
+              <div className="absolute -top-10 -right-10 opacity-5">
+                <TrendingUp size={240} />
               </div>
 
-              <div className="grid grid-cols-2 gap-6">
-                <div>
-                  <span className="text-[10px] font-bold text-slate-500 uppercase">Custo Insumos</span>
-                  <p className="text-xl font-bold">R$ {results.ingredient.toFixed(2)}</p>
+              <div className="relative z-10 space-y-8">
+                <div className="flex items-center justify-between border-b border-slate-800 pb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-green-500/20 p-2 rounded-lg">
+                      <TrendingUp className="text-green-400" size={24} />
+                    </div>
+                    <h2 className="text-2xl font-black uppercase tracking-tighter">Relatório do Mix</h2>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase block">Custo Total / Unit</span>
+                    <p className="text-3xl font-black text-yellow-500">R$ {results.total.toFixed(2)}</p>
+                  </div>
                 </div>
-                <div>
-                  <span className="text-[10px] font-bold text-slate-500 uppercase">Custo Logístico</span>
-                  <p className="text-xl font-bold">R$ {results.logistic.toFixed(2)}</p>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="bg-slate-800/40 p-5 rounded-2xl border border-slate-700/50">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Custo Insumos</span>
+                    <p className="text-xl font-bold">R$ {results.ingredient.toFixed(2)}</p>
+                  </div>
+                  <div className="bg-slate-800/40 p-5 rounded-2xl border border-slate-700/50">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Rateio Logística</span>
+                    <p className="text-xl font-bold">R$ {results.logistic.toFixed(2)}</p>
+                  </div>
+                  <div className={`p-5 rounded-2xl border-2 flex flex-col justify-center ${results.cmv > 35 ? 'border-red-500/50 bg-red-500/10' : 'border-green-500/50 bg-green-500/10'}`}>
+                    <span className="text-[10px] font-bold uppercase block opacity-60 mb-1 text-center">CMV Final</span>
+                    <p className={`text-3xl font-black text-center ${results.cmv > 35 ? 'text-red-400' : 'text-green-400'}`}>
+                      {results.cmv.toFixed(1)}%
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex flex-col md:flex-row items-center gap-6 pt-4">
+                  <div className="flex-1 w-full bg-blue-600 rounded-2xl p-6 flex items-center justify-between shadow-lg shadow-blue-900/20">
+                    <div>
+                      <span className="text-[10px] font-bold text-blue-200 uppercase block">Markup Calculado</span>
+                      <p className="text-4xl font-black">{results.markup.toFixed(2)}<span className="text-xl font-bold ml-1 text-blue-300">x</span></p>
+                    </div>
+                    <div className="bg-white/10 p-3 rounded-full">
+                      <TrendingUp size={32} />
+                    </div>
+                  </div>
+                  
+                  {results.cmv > 35 && (
+                    <div className="w-full md:w-auto bg-red-600/20 border border-red-500/50 p-4 rounded-2xl flex items-center gap-3">
+                      <AlertCircle className="text-red-500 shrink-0" size={24} />
+                      <p className="text-xs font-bold text-red-300 leading-tight">
+                        ALERTA: O CMV ultrapassou os 35%. <br/>Avalie o preço de venda ou custos.
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
-
-              <div className="bg-slate-800/50 rounded-2xl p-4 border border-slate-700">
-                <span className="text-[10px] font-bold text-slate-400 uppercase">Custo Total Unitário</span>
-                <p className="text-3xl font-black text-yellow-500">R$ {results.total.toFixed(2)}</p>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className={`p-4 rounded-2xl border ${results.cmv > 35 ? 'border-red-500 bg-red-500/10' : 'border-green-500 bg-green-500/10'}`}>
-                  <span className="text-[10px] font-bold uppercase block opacity-70">CMV</span>
-                  <span className="text-2xl font-black">{results.cmv.toFixed(1)}%</span>
-                </div>
-                <div className="p-4 rounded-2xl border border-blue-500 bg-blue-500/10">
-                  <span className="text-[10px] font-bold uppercase block opacity-70">Markup</span>
-                  <span className="text-2xl font-black">{results.markup.toFixed(2)}x</span>
-                </div>
-              </div>
-
-              {results.cmv > 35 && (
-                <div className="bg-red-500 text-white text-[10px] font-black p-2 rounded-lg text-center animate-pulse uppercase">
-                  Alerta: CMV acima do ideal (35%)
-                </div>
-              )}
             </section>
           </div>
         </div>
       </main>
 
-      <footer className="max-w-4xl mx-auto px-4 text-center">
-        <div className="flex items-center justify-center gap-2 text-slate-300">
-          <Package size={14} />
-          <span className="text-[10px] font-bold uppercase tracking-[0.2em]">Gestão de Mixes | Hora do Pastel © 2024</span>
+      <footer className="max-w-5xl mx-auto px-4 mt-8">
+        <div className="flex flex-col items-center justify-center gap-2 text-slate-400 border-t border-slate-200 pt-8">
+          <div className="flex items-center gap-2">
+            <Package size={14} />
+            <span className="text-[10px] font-bold uppercase tracking-[0.3em]">Gestão de Mixes | Hora do Pastel</span>
+          </div>
+          <p className="text-[9px] font-medium opacity-50 uppercase tracking-widest text-center max-w-xs leading-relaxed">
+            Desenvolvido para ambiente Vite. Configure variáveis no arquivo .env para alterar os valores padrão sem modificar o código.
+          </p>
         </div>
       </footer>
     </div>
