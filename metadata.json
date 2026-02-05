@@ -1,0 +1,5 @@
+{
+  "name": "Pastel Cost & Markup Calculator",
+  "description": "Uma ferramenta avançada para calcular o CMV, Markup e custos logísticos da Hora do Pastel, com gerenciamento dinâmico de ingredientes e mix de temperos.",
+  "requestFramePermissions": []
+}
