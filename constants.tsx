@@ -39,5 +39,5 @@ export const DEFAULT_OPERATIONAL = {
 
 export const DEFAULT_STRATEGY = {
   markup: 1.55,
-  batchSize: 2.0
+  batchSize: 1.0
 };
